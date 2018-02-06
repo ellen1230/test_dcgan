@@ -27,30 +27,26 @@ def generator_model():
     # current = Merge(mode='concat', concat_axis=-1)([inputs_img, inputs_y])
     current = Concatenate(axis=-1)([inputs_img, inputs_y])
     current = Dense(1024, kernel_initializer=kernel_initializer, bias_initializer=bias_initializer)(current)
-    current = Lambda(tf.layers.batch_normalization, output_shape=(int(current.shape[1]),))(current)
+    current = Lambda(tf.layers.batch_normalization,output_shape=(int(current.shape[1]),),
+                     arguments={'momentum': 0.9, 'epsilon': 1e-5, 'scale': True})(current)
     # current = tf.layers.batch_normalization(inputs=current)
     current = Activation(activation='relu')(current)
 
     current = Concatenate(axis=-1)([current, inputs_y])
     current = Dense(128*7*7, kernel_initializer=kernel_initializer, bias_initializer=bias_initializer)(current)
-    current = Lambda(tf.layers.batch_normalization, output_shape=(int(current.shape[1]),))(current)
+    current = Lambda(tf.layers.batch_normalization, output_shape=(int(current.shape[1]),),
+                     arguments={'momentum': 0.9, 'epsilon': 1e-5, 'scale': True})(current)
     current = Activation(activation='relu')(current)
 
     current = Reshape(target_shape=(7, 7, 128))(current)
     inputs_y_repeat = Lambda(concatenate, output_shape=(7, 7, 10), arguments={'times': 7})(input_y_conv)
     current = Concatenate(axis=-1)([current, inputs_y_repeat])
 
-    current = Conv2DTranspose(filters=64, kernel_size=(5, 5), padding='same',strides=(2, 2),
+    current = Conv2DTranspose(filters=64, kernel_size=(5, 5), padding='same', strides=(2, 2),
                               kernel_initializer=kernel_initializer, bias_initializer=bias_initializer)(current)
-    # current = UpSampling2D(size=(2, 2))(current)
-    # #conv1 = Conv2D(filters=64, kernel_size=(5, 5), padding="same", activation="relu")(up1)
-    # current = Convolution2D(filters=64, kernel_size=(5, 5), padding="same",
-    #                        kernel_initializer=kernel_initializer, bias_initializer=bias_initializer)(current)
-    current = Lambda(tf.layers.batch_normalization, output_shape=(14, 14, int(current.shape[3])))(current)
+    current = Lambda(tf.layers.batch_normalization, output_shape=(14, 14, int(current.shape[3])),
+                     arguments={'momentum': 0.9, 'epsilon': 1e-5, 'scale': True})(current)
     current = Activation(activation='relu')(current)
-
-    inputs_y_repeat = Lambda(concatenate, output_shape=(14, 14, 10), arguments={'times': 14})(input_y_conv)
-    current = Concatenate(axis=-1)([current, inputs_y_repeat])
 
     current = Conv2DTranspose(filters=1, kernel_size=(5, 5), padding='same', strides=(2, 2),
                               kernel_initializer=kernel_initializer, bias_initializer=bias_initializer)(current)
@@ -79,13 +75,17 @@ def discriminator_model():
 
     current = Conv2D(filters=64+10, kernel_size=(5, 5), padding='same', strides=(2, 2),
                      kernel_initializer=kernel_initializer, bias_initializer=bias_initializer)(current)
-    current = Lambda(tf.layers.batch_normalization, output_shape=(7, 7, int(current.shape[3])))(current)
+    current = Lambda(tf.layers.batch_normalization, output_shape=(7, 7, int(current.shape[3])),
+                     arguments={'momentum': 0.9, 'epsilon': 1e-5, 'scale': True})(current)
     current = Lambda(lrelu, output_shape=(7, 7, int(current.shape[3])))(current)
+
+    kernel_initializer = initializers.random_normal(stddev=0.02)
 
     current = Reshape(target_shape=(7*7*74,))(current)
     current = Concatenate(axis=-1)([current, inputs_y])
     current = Dense(1024, kernel_initializer=kernel_initializer, bias_initializer=bias_initializer)(current)
-    current = Lambda(tf.layers.batch_normalization, output_shape=(int(current.shape[1]),))(current)
+    current = Lambda(tf.layers.batch_normalization, output_shape=(int(current.shape[1]),),
+                     arguments={'momentum': 0.9, 'epsilon': 1e-5, 'scale': True})(current)
     current = Lambda(lrelu, output_shape=(int(current.shape[1]), ))(current)
 
     current = Concatenate(axis=-1)([current, inputs_y])
@@ -236,23 +236,27 @@ def train(batchsize, numepoch):
     np.save('metric/gLoss2.npy', np.array(g_loss2))
 
 def save_image(images, numbatch, epoch):
+    from scipy.misc import imsave
     num_images = images.shape[0]
     num_picture = int(np.sqrt(num_images))
-    picture = np.zeros([28*num_picture, 28*num_picture])
+    picture = np.zeros((28*num_picture, 28*num_picture))
 
     for i in range(num_picture):
         for j in range(num_picture):
             index = i * num_picture + j
-            image = images[index].reshape(28, 28)
+            image = images[index][:, :, 0]
             picture[i * 28:(i + 1) * 28, j * 28:(j + 1) * 28] = image
 
-    # image = images[0].reshape(28, 28)
-    # for i in range(1, images.shape[0]):
-    #     image = np.append(image, images[i].reshape(28, 28), axis=1)
-    # picture= picture * 127.5 + 127.5
-    picture = picture * 255.0
-    picture = Image.fromarray(picture, mode="L")
-    picture.save("generate/e" + str(epoch) + 'b' + str(numbatch) + ".jpg")
+    picture = (picture * 255.0).astype(np.uint8) # gray
+    # picture = picture * 255
+    path = "generate/e" + str(epoch) + 'b' + str(numbatch) + ".png"
+    imsave(path, picture)
+    # picture.save("generate/e" + str(epoch) + 'b' + str(numbatch) + ".png")
+
+    # manifold_h = int(np.floor(np.sqrt(num_images)))
+    # manifold_w = int(np.ceil(np.sqrt(num_images)))
+
+
 
     # i = 0
     # for image in images:
