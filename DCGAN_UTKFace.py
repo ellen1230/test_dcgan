@@ -25,26 +25,32 @@ def generator_model():
 
     current = Dense(64*8*4*4, kernel_initializer=kernel_initializer, bias_initializer=bias_initializer)(inputs_z)
     current = Reshape(target_shape=(4, 4, 64 * 8))(current)
-    current = Lambda(tf.layers.batch_normalization, output_shape=(4, 4, 64 * 8),
-                     arguments={'momentum': 0.9, 'epsilon': 1e-5, 'scale': True})(current)
+    current = Lambda(tf.contrib.layers.batch_norm, output_shape=(4, 4, 64 * 8),
+                     arguments={'decay':0.9, 'epsilon': 1e-5, 'scale':True})(current)
     current = Activation(activation='relu')(current)
 
     current = Conv2DTranspose(filters=64*4, kernel_size=(5, 5), padding='same', strides=(2, 2),
                               kernel_initializer=kernel_initializer, bias_initializer=bias_initializer)(current)
-    current = Lambda(tf.layers.batch_normalization, output_shape=(8, 8, 64*4),
-                     arguments={'momentum': 0.9, 'epsilon': 1e-5, 'scale': True})(current)
+    # current = Lambda(tf.layers.batch_normalization, output_shape=(8, 8, 64*4),
+    #                  arguments={'momentum': 0.9, 'epsilon': 1e-5, 'scale': True})(current)
+    current = Lambda(tf.contrib.layers.batch_norm, output_shape=(8, 8, 64*4),
+                     arguments={'decay':0.9, 'epsilon': 1e-5, 'scale':True})(current)
     current = Activation(activation='relu')(current)
 
     current = Conv2DTranspose(filters=64*2, kernel_size=(5, 5), padding='same', strides=(2, 2),
                               kernel_initializer=kernel_initializer, bias_initializer=bias_initializer)(current)
-    current = Lambda(tf.layers.batch_normalization, output_shape=(16, 16, 64*2),
-                     arguments={'momentum': 0.9, 'epsilon': 1e-5, 'scale': True})(current)
+    # current = Lambda(tf.layers.batch_normalization, output_shape=(16, 16, 64*2),
+    #                  arguments={'momentum': 0.9, 'epsilon': 1e-5, 'scale': True})(current)
+    current = Lambda(tf.contrib.layers.batch_norm, output_shape=(16, 16, 64*2),
+                     arguments={'decay':0.9, 'epsilon': 1e-5, 'scale':True})(current)
     current = Activation(activation='relu')(current)
 
     current = Conv2DTranspose(filters=64*1, kernel_size=(5, 5), padding='same', strides=(2, 2),
                               kernel_initializer=kernel_initializer, bias_initializer=bias_initializer)(current)
-    current = Lambda(tf.layers.batch_normalization, output_shape=(32, 32, 64*1),
-                     arguments={'momentum': 0.9, 'epsilon': 1e-5, 'scale': True})(current)
+    # current = Lambda(tf.layers.batch_normalization, output_shape=(32, 32, 64*1),
+    #                  arguments={'momentum': 0.9, 'epsilon': 1e-5, 'scale': True})(current)
+    current = Lambda(tf.contrib.layers.batch_norm, output_shape=(32, 32, 64*1),
+                     arguments={'decay':0.9, 'epsilon': 1e-5, 'scale':True})(current)
     current = Activation(activation='relu')(current)
 
     current = Conv2DTranspose(filters=3, kernel_size=(5, 5), padding='same', strides=(2, 2),
@@ -65,20 +71,26 @@ def discriminator_model():
 
     current = Conv2D(filters=64 * 2, kernel_size=(5, 5), padding='same', strides=(2, 2),
                      kernel_initializer=kernel_initializer, bias_initializer=bias_initializer)(current)
-    current = Lambda(tf.layers.batch_normalization, output_shape=(16, 16, int(current.shape[3])),
-                     arguments={'momentum': 0.9, 'epsilon': 1e-5, 'scale': True})(current)
+    # current = Lambda(tf.layers.batch_normalization, output_shape=(16, 16, int(current.shape[3])),
+    #                  arguments={'momentum': 0.9, 'epsilon': 1e-5, 'scale': True})(current)
+    current = Lambda(tf.contrib.layers.batch_norm, output_shape=(16, 16, int(current.shape[3])),
+                     arguments={'decay':0.9, 'epsilon': 1e-5, 'scale':True})(current)
     current = Lambda(lrelu, output_shape=(16, 16, int(current.shape[3])))(current)
 
     current = Conv2D(filters=64 * 4, kernel_size=(5, 5), padding='same', strides=(2, 2),
                      kernel_initializer=kernel_initializer, bias_initializer=bias_initializer)(current)
-    current = Lambda(tf.layers.batch_normalization, output_shape=(8, 8, int(current.shape[3])),
-                     arguments={'momentum': 0.9, 'epsilon': 1e-5, 'scale': True})(current)
+    # current = Lambda(tf.layers.batch_normalization, output_shape=(8, 8, int(current.shape[3])),
+    #                  arguments={'momentum': 0.9, 'epsilon': 1e-5, 'scale': True})(current)
+    current = Lambda(tf.contrib.layers.batch_norm, output_shape=(8, 8, int(current.shape[3])),
+                     arguments={'decay':0.9, 'epsilon': 1e-5, 'scale':True})(current)
     current = Lambda(lrelu, output_shape=(8, 8, int(current.shape[3])))(current)
 
     current = Conv2D(filters=64 * 8, kernel_size=(5, 5), padding='same', strides=(2, 2),
                      kernel_initializer=kernel_initializer, bias_initializer=bias_initializer)(current)
-    current = Lambda(tf.layers.batch_normalization, output_shape=(4, 4, int(current.shape[3])),
-                     arguments={'momentum': 0.9, 'epsilon': 1e-5, 'scale': True})(current)
+    # current = Lambda(tf.layers.batch_normalization, output_shape=(4, 4, int(current.shape[3])),
+    #                  arguments={'momentum': 0.9, 'epsilon': 1e-5, 'scale': True})(current)
+    current = Lambda(tf.contrib.layers.batch_norm, output_shape=(4, 4, int(current.shape[3])),
+                     arguments={'decay':0.9, 'epsilon': 1e-5, 'scale':True})(current)
     current = Lambda(lrelu, output_shape=(4, 4, int(current.shape[3])))(current)
 
     kernel_initializer = initializers.random_normal(stddev=0.02)
@@ -188,8 +200,6 @@ def save_image(images, numbatch, epoch):
 def lrelu(x, leak=0.2, name="lrelu"):
   return tf.maximum(x, leak*x)
 
-def init_param(shape):
-    return
 
 if __name__ == '__main__':
     train(50, 200)
